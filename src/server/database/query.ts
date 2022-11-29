@@ -3,7 +3,7 @@ import { Database } from "./database";
 
 interface IQuery {
   toString(): string;
-  execute(): Promise<MySQLQuery>;
+  execute<T>(): Promise<T>;
 }
 
 class Where {
@@ -36,8 +36,8 @@ class Where {
     return this._clause;
   }
 
-  public async execute(): Promise<MySQLQuery> {
-    return await Database.executeSimpleQuery(this.toString());
+  public async execute<T>(): Promise<T[]> {
+    return await Database.executeSimpleQuery<T>(this.toString());
   }
 }
 
@@ -63,8 +63,8 @@ export class SelectQuery implements IQuery {
     return this._queryString;
   }
 
-  public async execute(): Promise<MySQLQuery> {
-    return await Database.executeSimpleQuery(this.toString());
+  public async execute<T>(): Promise<T> {
+    return await (await Database.executeSimpleQuery<T>(this.toString())).pop();
   }
 }
 
@@ -88,8 +88,8 @@ export class UpdateQuery implements IQuery {
     return this._queryString;
   }
 
-  public async execute(): Promise<MySQLQuery> {
-    return await Database.executeSimpleQuery(this.toString());
+  public async execute<T>(): Promise<T> {
+    return await (await Database.executeSimpleQuery<T>(this.toString())).pop();
   }
 }
 

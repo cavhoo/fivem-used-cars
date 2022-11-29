@@ -1,7 +1,8 @@
-onNet('helloserver', () => {
-  const _source = (global as any).source;
+import {FiveMServerEvents } from "../common";
 
-  console.log(`Hello from ${_source}`);
 
-  emitNet('helloclient', _source, 'i got your message!');
-});
+on(FiveMServerEvents.ResourceStart, (resource: string) => {
+  if (resource === GetCurrentResourceName()) {
+     
+  }
+})
