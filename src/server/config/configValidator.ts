@@ -1,19 +1,20 @@
-import Joi from "joi";
+import Joi from 'joi';
+import { Database } from './fragments/database';
 
 export interface IComConfig {
   database: {
-    connectionString: string;
+    host: string;
+    user: string;
+    password: string;
+    port: number;
+    database: string;
   };
   blips: { type: number; label: string; location: number[] }[];
-  pedestrianLevel: number;
-  initialSpawnLocation: number[];
 }
 
 export abstract class ConfigValidator {
   public static joi = Joi.object().keys({
-    database: Joi.object().keys({
-      connectionString: Joi.string(),
-    }),
+    database: Database.joi,
     blips: Joi.array()
       .optional()
       .items(
@@ -21,10 +22,8 @@ export abstract class ConfigValidator {
           type: Joi.number(),
           label: Joi.string(),
           location: Joi.array().items(Joi.number()),
-        })
+        }),
       ),
-    pedestrianLevel: Joi.number(),
-    initialSpawnLocation: Joi.array().optional().items(Joi.number()),
   });
 
   public static validate(input: unknown): input is IComConfig {
