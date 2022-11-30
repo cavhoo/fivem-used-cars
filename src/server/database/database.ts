@@ -4,7 +4,7 @@ export interface IDatabaseOptions {
   user: string;
   password: string;
   host: string;
-  port: number;
+  port?: number;
   database: string;
 }
 
@@ -13,11 +13,10 @@ export class Database {
 
   static async connect({user, password, host, port, database}: IDatabaseOptions): Promise<void> {
     this._connectionPool = mysql2.createPool({
-      user: "com_rp_user",
-      password: "hallo123",
+      user: "comrp",
+      password: "comrp",
       host: "localhost",
-      port: 5432,
-      database: "com_rp",
+      database: "comrp",
     });
   }
 
