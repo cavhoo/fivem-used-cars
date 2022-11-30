@@ -10,15 +10,14 @@ import { Database } from "./database/database";
  }
 
 
-on(FiveMServerEvents.ResourceStart, (resource: string) => {
+on(FiveMServerEvents.ResourceStart, async (resource: string) => {
   if (resource === GetCurrentResourceName()) {
+    const root = GetResourcePath(GetCurrentResourceName());
     console.log("Started Used Car Dealer...loading vehicles");
-    Database.connect({
-      user: "comrp",
-      password: "comrp",
-      host: "localhost",
-      database: "comrp",
-    });
-    void loadVehiclesForSale();
+    const config = await ConfigController.loadConfig(`${root}/config.json`);
+
+
+    await Database.connect(config.database);
+    await loadVehiclesForSale();
   }
 })
