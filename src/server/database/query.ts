@@ -1,33 +1,32 @@
-import { Query as MySQLQuery} from "mysql2";
 import { Database } from "./database";
 
-interface IQuery {
+interface IQuery<T> {
   toString(): string;
-  execute<T>(): Promise<T>;
+  execute(): Promise<T | T[]>;
 }
 
-class Where {
+class Where<T> {
   private _clause: string = "where ";
   constructor(rawQuery: string) {
     this._clause = rawQuery;
   }
 
-  public and(column: string): Where{
-    this._clause = `${this._clause} ${column}`;
+  public and(column: keyof T): Where<T>{
+    this._clause = `${this._clause} ${String(column)}`;
     return this;
   }
 
-  public or(column: string): Where {
-    this._clause = `${this._clause} ${column}`;
+  public or(column: keyof T): Where<T> {
+    this._clause = `${this._clause} ${String(column)}`;
     return this;
   }
 
-  public like(value: string): Omit<Where, "like" | "equals"> {
+  public like(value: string | number): Omit<Where<T>, "like" | "equals"> {
     this._clause = `${this._clause} like ${value}`;
     return this;
   }
 
-  public equals(value: string): Omit<Where, "like" | "equals"> {
+  public equals(value: string | number): Omit<Where<T>, "like" | "equals"> {
     this._clause = `${this._clause} = ${value}`;
     return this;
   }
@@ -41,21 +40,21 @@ class Where {
   }
 }
 
-export class SelectQuery implements IQuery {
+export class SelectQuery<T> implements IQuery<T> {
   private _queryString = "";
-  constructor(columns?: string[] | string) {
+  constructor(columns?: (keyof T)[] | keyof T | string) {
     this._queryString = `${this._queryString} select ${
-      !columns ? "*" : Array.isArray(columns) ? columns.join(",") : columns
+      !columns ? "*" : Array.isArray(columns) ? columns.join(",") : String(columns)
     } from`;
   }
 
-  public from(table: string): Omit<SelectQuery, "from"> {
+  public from(table: string): Omit<SelectQuery<T>, "from"> {
     this._queryString = `${this._queryString} ${table}`;
     return this;
   }
 
-  public where(column: string): Where {
-    this._queryString = `${this._queryString} where`;
+  public where(column: keyof T): Where<T> {
+    this._queryString = `${this._queryString} where ${String(column)}`;
     return new Where(this._queryString);
   }
 
@@ -63,24 +62,24 @@ export class SelectQuery implements IQuery {
     return this._queryString;
   }
 
-  public async execute<T>(): Promise<T> {
-    return await (await Database.executeSimpleQuery<T>(this.toString())).pop();
+  public async execute(): Promise<T[]> {
+    return await (await Database.executeSimpleQuery<T>(this.toString()));
   }
 }
 
-export class UpdateQuery implements IQuery {
+export class UpdateQuery<T> implements IQuery<T> {
   private _queryString = "";
   constructor(table: string) {
     this._queryString = `update ${table}`;
   }
 
-  public set(column: string, value: any): UpdateQuery {
-    this._queryString = `${this._queryString} set ${column}=${value}`;
+  public set(column: keyof T, value: any): UpdateQuery<T> {
+    this._queryString = `${this._queryString} set ${String(column)}=${value}`;
     return this;
   }
 
-  public where(column: string): Where {
-    this._queryString = `${this._queryString} where`;
+  public where(column: keyof T): Where<T> {
+    this._queryString = `${this._queryString} where ${String(column)}`;
     return new Where(this._queryString);
   }
 
@@ -94,13 +93,13 @@ export class UpdateQuery implements IQuery {
 }
 
 export class Query {
-  public static Select(
-    columns?: string[] | string
-  ): Omit<SelectQuery, "where"> {
-    return new SelectQuery(columns);
+  public static Select<T>(
+    columns?: (keyof T)[] | keyof T | string
+  ): Omit<SelectQuery<T>, "where"> {
+    return new SelectQuery<T>(columns);
   }
 
-  public static Update(table: string): Omit<UpdateQuery, "where"> {
-    return new UpdateQuery(table);
+  public static Update<T>(table: string): Omit<UpdateQuery<T>, "where"> {
+    return new UpdateQuery<T>(table);
   }
 }

@@ -1,4 +1,4 @@
-export interface IVehicle {
+export type Vehicle = {
   /** The gta model hash of the car. */
   model: string;
   /** The human readable name of the car. */
