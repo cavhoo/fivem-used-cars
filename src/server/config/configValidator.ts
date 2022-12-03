@@ -1,15 +1,33 @@
 import Joi from 'joi';
+import { Vec3 } from '../../common';
 import { Database } from './fragments/database';
 
-export interface IComConfig {
+export interface IUsedCarsTable {
+  name: string;
+  columns: string[];
+}
+
+export interface IShowroomLocation {
+  location: Vec3;
+}
+
+export interface IUsedCarsConfig {
   database: {
-    host: string;
-    user: string;
-    password: string;
-    port: number;
-    database: string;
+    host: string; // Host where the databse is located.
+    user: string; // Username of db user that has access.
+    password: string; // Password of the user.
+    port: number; // Database connection port.
+    database: string; // The name of the database of the fivem server.
+    tables: {
+      // Table names for the script.
+      vehicles: string; // Where the vehicles that are owned are located.
+    };
   };
-  blips: { type: number; label: string; location: number[] }[];
+  blips: { type: number; label: string; location: number[] }[]; // The blips that are shown on the map.
+  spawnLocation: IShowroomLocation[];
+  testDrive: {
+    length: number; // The duration of the testdrive in minutes.
+  };
 }
 
 export abstract class ConfigValidator {
@@ -26,7 +44,7 @@ export abstract class ConfigValidator {
       ),
   });
 
-  public static validate(input: unknown): input is IComConfig {
+  public static validate(input: unknown): input is IUsedCarsConfig {
     console.log(ConfigValidator.joi.validate(input).error);
     return !ConfigValidator.joi.validate(input).error;
   }

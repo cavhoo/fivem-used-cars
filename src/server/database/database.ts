@@ -1,4 +1,4 @@
-import mysql2 from "mysql2/promise";
+import mysql2 from 'mysql2/promise';
 
 export interface IDatabaseOptions {
   user: string;
@@ -8,15 +8,20 @@ export interface IDatabaseOptions {
   database: string;
 }
 
+export enum Tables {
+  INVENTORY = 'usedcars_inventory',
+  TESTDRIVES = 'usedcars_testdrives',
+}
+
 export class Database {
   private static _connectionPool: mysql2.Pool;
 
-  static async connect({user, password, host, port, database}: IDatabaseOptions): Promise<void> {
+  static async connect({ user, password, host, database }: IDatabaseOptions): Promise<void> {
     this._connectionPool = mysql2.createPool({
-      user: "comrp",
-      password: "comrp",
-      host: "localhost",
-      database: "comrp",
+      user,
+      password,
+      host,
+      database,
     });
   }
 
@@ -24,13 +29,11 @@ export class Database {
    * Run a simple database query without any dynamic values.
    * For example getting all entries on one table.
    */
-  static async executeSimpleQuery<T>(
-    query: string
-  ): Promise<T[]> {
+  static async executeSimpleQuery<T>(query: string): Promise<T[]> {
     if (!Database._connectionPool) {
-      throw new Error("No database connection available");
+      throw new Error('No database connection available');
     }
-    const [rows, fields] = await this._connectionPool.execute(query);
+    const [rows, _] = await this._connectionPool.execute(query);
 
     return rows as T[];
   }
@@ -39,14 +42,26 @@ export class Database {
    * Run a parameterized query.
    * This is useful when you need to select a subset of data.
    */
-  static async executeParamQuery<T>(
-    query: string,
-    values: unknown[]
-  ): Promise<T[]> {
+  static async executeParamQuery<T>(query: string, values: unknown[]): Promise<T[]> {
     if (!Database._connectionPool) {
-      throw new Error("No database connection available.");
+      throw new Error('No database connection available.');
     }
-    const [ rows, fields ] = await this._connectionPool.execute(query, values);
+    const [rows, _] = await this._connectionPool.execute(query, values);
     return rows as T[];
+  }
+
+  /**
+   * Create the tables that we need for the script.
+   */
+  static async createTables(): Promise<void> {
+    // Creating the inventory table.
+    await Database.executeSimpleQuery(
+      `CREATE TABLE IF NOT EXISTS ${Tables.INVENTORY} (id int, owner TEXT, plate TEXT, mods TEXT, price int, model TEXT, displayName TEXT);`,
+    );
+
+    // Creating the testdrive table.
+    await Database.executeSimpleQuery(
+      `CREATE TABLE IF NOT EXISTS ${Tables.TESTDRIVES} (id int, owner TEXT, plate TEXT, mods TEXT, price int, model TEXT, displayName TEXT);`,
+    );
   }
 }
