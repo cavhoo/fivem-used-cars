@@ -1,3 +1,7 @@
 export enum FiveMServerEvents {
-  ResourceStart = "onResourceStart",
+  ResourceStart = 'onResourceStart',
+}
+
+export enum FiveMUsedCarsServerEvents {
+  VehiclesLoaded = 'FUC:VehiclesLoaded',
 }

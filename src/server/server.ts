@@ -1,16 +1,25 @@
 import { Query } from './database/query';
 import { ConfigController } from './config/configController';
-import { FiveMServerEvents } from '../common';
+import { FiveMServerEvents, FiveMUsedCarsServerEvents } from '../common';
 import { Vehicle } from './models/vehicle';
 import { Database, Tables } from './database/database';
+import { IUsedCarsConfig, IShowroomLocation } from './config/configValidator';
 
 const vehiclesForSale = new Map<string, Vehicle>();
+const spawnPointsVehicleMap = new Map<IShowroomLocation, string>();
+let config: IUsedCarsConfig;
 
 const loadVehiclesForSale = async (): Promise<Vehicle[]> => {
   const vehicles = await Query.Select<Vehicle>().from(Tables.INVENTORY).execute();
   return vehicles;
 };
 
+/** Find the next free showroom spot. */
+const getFreeSpawnPoint = (): [IShowroomLocation, string] => {
+  return [...spawnPointsVehicleMap.entries()].find(([_, vehicle]) => vehicle === '');
+};
+
+/** Action handler when a player sells a vehicle. */
 const sellVehicle = async (vehicleId: string) => {
   if (vehiclesForSale.has(vehicleId)) {
     // TODO:
@@ -24,11 +33,32 @@ const sellVehicle = async (vehicleId: string) => {
   }
 };
 
+/** Server side spawning of vehicles on the showroom coords. */
 const spawnVehicles = async () => {
   // TODO:
   // 1. Loop through loaded vehicles
-  // 2. Take one spawn position of the given locations
-  // 3. Spawn one vehicle per spot.
+  for (let veh in vehiclesForSale) {
+    // 2. Take one spawn position of the given locations.
+    const [spawnLocation, _] = getFreeSpawnPoint();
+
+    const vehicle = vehiclesForSale.get(veh);
+
+    // Obtain spawnable hash.
+    const vehicleHash = GetHashKey(vehicle.model);
+    const { location, heading } = spawnLocation;
+
+    // Create the vehicle.
+    // 3. Spawn one vehicle per spot.
+    const vehicleEntity = CreateVehicle(
+      vehicleHash,
+      location.x,
+      location.y,
+      location.z,
+      heading,
+      true,
+      true,
+    );
+  }
 };
 
 const startTestDrive = async () => {
@@ -50,7 +80,9 @@ on(FiveMServerEvents.ResourceStart, async (resource: string) => {
   if (resource === GetCurrentResourceName()) {
     const root = GetResourcePath(GetCurrentResourceName());
     console.log('Started Used Car Dealer...loading vehicles');
-    const config = await ConfigController.loadConfig(`${root}/config.json`);
+    config = await ConfigController.loadConfig(`${root}/config.json`);
+
+    config.spawnLocation.forEach(location => spawnPointsVehicleMap.set(location, ''));
 
     // Establish connection to database
     await Database.connect(config.database);
@@ -60,6 +92,9 @@ on(FiveMServerEvents.ResourceStart, async (resource: string) => {
 
     // Load all vehicles that are currently for sale.
     const vehicles = await loadVehiclesForSale();
+    setImmediate(() => {
+      emitNet(FiveMUsedCarsServerEvents.VehiclesLoaded, vehicles);
+    });
 
     // Save the current vehicles in map to retrieve them later.
     vehicles.forEach(vehicle => {

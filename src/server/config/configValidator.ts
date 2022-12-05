@@ -8,7 +8,10 @@ export interface IUsedCarsTable {
 }
 
 export interface IShowroomLocation {
+  // The coords where the car should spawn.
   location: Vec3;
+  // The angle in which the car should spawn.
+  heading: number;
 }
 
 export interface IUsedCarsConfig {
