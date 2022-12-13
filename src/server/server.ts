@@ -1,6 +1,11 @@
 import { Query } from './database/query';
 import { ConfigController } from './config/configController';
-import { FiveMServerEvents, FiveMUsedCarsServerEvents } from '../common';
+import {
+  FiveMServerEvents,
+  FiveMUsedCarsServerEvents,
+  FiveMUsedCarsClientEvents,
+  Delay,
+} from '../common';
 import { Vehicle } from './models/vehicle';
 import { Database, Tables } from './database/database';
 import { IUsedCarsConfig, IShowroomLocation } from './config/configValidator';
@@ -8,6 +13,7 @@ import { IUsedCarsConfig, IShowroomLocation } from './config/configValidator';
 const vehiclesForSale = new Map<string, Vehicle>();
 const spawnPointsVehicleMap = new Map<IShowroomLocation, string>();
 let config: IUsedCarsConfig;
+let vehiclesSpawned: boolean = false;
 
 const loadVehiclesForSale = async (): Promise<Vehicle[]> => {
   const vehicles = await Query.Select<Vehicle>().from(Tables.INVENTORY).execute();
@@ -34,31 +40,35 @@ const sellVehicle = async (vehicleId: string) => {
 };
 
 /** Server side spawning of vehicles on the showroom coords. */
-const spawnVehicles = async () => {
+const spawnVehicles = () => {
   // TODO:
   // 1. Loop through loaded vehicles
-  for (let veh in vehiclesForSale) {
+  [...vehiclesForSale.entries()].forEach(async ([_uuid, vehicle]) => {
     // 2. Take one spawn position of the given locations.
     const [spawnLocation, _] = getFreeSpawnPoint();
 
-    const vehicle = vehiclesForSale.get(veh);
-
     // Obtain spawnable hash.
-    const vehicleHash = GetHashKey(vehicle.model);
     const { location, heading } = spawnLocation;
 
     // Create the vehicle.
     // 3. Spawn one vehicle per spot.
-    const vehicleEntity = CreateVehicle(
-      vehicleHash,
+    const v = CreateVehicleServerSetter(
+      vehicle.model,
+      'automobile',
       location.x,
       location.y,
       location.z,
       heading,
-      true,
-      true,
     );
-  }
+
+    // EnsureEntityStateBag(v);
+    // while (NetworkGetEntityOwner(v) == -1) {
+    //   console.log('No net owner.');
+    //   await Delay(5000);
+    // }
+
+    console.log(GetEntityCoords(v), v);
+  });
 };
 
 const startTestDrive = async () => {
@@ -92,14 +102,48 @@ on(FiveMServerEvents.ResourceStart, async (resource: string) => {
 
     // Load all vehicles that are currently for sale.
     const vehicles = await loadVehiclesForSale();
-    setImmediate(() => {
-      emitNet(FiveMUsedCarsServerEvents.VehiclesLoaded, vehicles);
-    });
-
+    console.log(vehicles.length);
     // Save the current vehicles in map to retrieve them later.
     vehicles.forEach(vehicle => {
       if (!vehiclesForSale.has(vehicle.uuid)) {
+        console.log(`Storting Vehicle: ${vehicle.model}`);
         vehiclesForSale.set(vehicle.uuid, vehicle);
+      }
+    });
+
+    spawnVehicles();
+
+    RegisterCommand(
+      'car',
+      async () => {
+        //Citizen.invokeNative('CREATE_AUTOMOBILE', 'banshee', -1674.5, -875.8, 9.0, 90.0);
+
+        const vehicle = CreateVehicleServerSetter(
+          'banshee',
+          'automobile',
+          -1674.5,
+          -875.8,
+          9.0,
+          90.0,
+        );
+
+        while (!DoesEntityExist(vehicle)) {
+          await Delay(1);
+        }
+        // EnsureEntityStateBag(vehicle);
+        // while (NetworkGetEntityOwner(vehicle) === -1) {
+        //   console.log('No owner');
+        //   await Delay(5000);
+        // }
+      },
+      false,
+    );
+
+    onNet(FiveMUsedCarsClientEvents.LoadVehicles, source => {
+      if (!vehiclesSpawned) {
+        setImmediate(() => {
+          emitNet(FiveMUsedCarsServerEvents.VehiclesLoaded, source, vehicles);
+        });
       }
     });
   }

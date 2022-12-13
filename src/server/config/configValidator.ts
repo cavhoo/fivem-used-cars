@@ -45,6 +45,18 @@ export abstract class ConfigValidator {
           location: Joi.array().items(Joi.number()),
         }),
       ),
+    spawnLocation: Joi.array()
+      .optional()
+      .items(
+        Joi.object().keys({
+          heading: Joi.number(),
+          location: Joi.object().keys({
+            x: Joi.number(),
+            y: Joi.number(),
+            z: Joi.number(),
+          }),
+        }),
+      ),
   });
 
   public static validate(input: unknown): input is IUsedCarsConfig {

@@ -56,12 +56,12 @@ export class Database {
   static async createTables(): Promise<void> {
     // Creating the inventory table.
     await Database.executeSimpleQuery(
-      `CREATE TABLE IF NOT EXISTS ${Tables.INVENTORY} (id int, owner TEXT, plate TEXT, mods TEXT, price int, model TEXT, displayName TEXT);`,
+      `CREATE TABLE IF NOT EXISTS ${Tables.INVENTORY} (uuid VARCHAR(32), owner TEXT, plate TEXT, mods TEXT, price int, model TEXT, displayName TEXT, PRIMARY KEY (uuid));`,
     );
 
     // Creating the testdrive table.
     await Database.executeSimpleQuery(
-      `CREATE TABLE IF NOT EXISTS ${Tables.TESTDRIVES} (id int, owner TEXT, plate TEXT, mods TEXT, price int, model TEXT, displayName TEXT);`,
+      `CREATE TABLE IF NOT EXISTS ${Tables.TESTDRIVES} (uuid VARCHAR(32), driver TEXT, starttime TEXT, endtime TEXT, model TEXT, PRIMARY KEY (uuid));`,
     );
   }
 }
