@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { Vec3 } from '../../common';
+import { Vec3, Blip, Language, Marker } from '../../common';
 import { Database } from './fragments/database';
 
 export interface IUsedCarsTable {
@@ -26,11 +26,13 @@ export interface IUsedCarsConfig {
       vehicles: string; // Where the vehicles that are owned are located.
     };
   };
-  blips: { type: number; label: string; location: number[] }[]; // The blips that are shown on the map.
+  blips: Blip[]; // The blips that are shown on the map.
+  markers: Marker[];
   spawnLocation: IShowroomLocation[];
   testDrive: {
-    length: number; // The duration of the testdrive in minutes.
+    length: number; // The duration of the testdrive in seconds.
   };
+  language: Language;
 }
 
 export abstract class ConfigValidator {
@@ -43,8 +45,13 @@ export abstract class ConfigValidator {
           type: Joi.number(),
           label: Joi.string(),
           location: Joi.array().items(Joi.number()),
+          display: Joi.number(),
+          color: Joi.number(),
+          scale: Joi.number(),
         }),
       ),
+    markers: Joi.array().items(Joi.object().unknown(true)),
+    language: Joi.alternatives(['en', 'de']),
     spawnLocation: Joi.array()
       .optional()
       .items(

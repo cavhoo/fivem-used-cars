@@ -1,19 +1,21 @@
-import { Query } from './database/query';
-import { ConfigController } from './config/configController';
 import {
+  Client,
+  FiveMClientEvents,
   FiveMServerEvents,
-  FiveMUsedCarsServerEvents,
-  FiveMUsedCarsClientEvents,
-  Delay,
+  UsedCarsClientEvents,
+  UsedCarsServerEvents,
 } from '../common';
-import { Vehicle } from './models/vehicle';
+import { ConfigController } from './config/configController';
+import { IShowroomLocation, IUsedCarsConfig } from './config/configValidator';
 import { Database, Tables } from './database/database';
-import { IUsedCarsConfig, IShowroomLocation } from './config/configValidator';
+import { Query } from './database/query';
+import { Vehicle } from './models/vehicle';
 
+/** The vehicles that are for sale */
 const vehiclesForSale = new Map<string, Vehicle>();
 const spawnPointsVehicleMap = new Map<IShowroomLocation, string>();
+const spawnedVehicles = [];
 let config: IUsedCarsConfig;
-let vehiclesSpawned: boolean = false;
 
 const loadVehiclesForSale = async (): Promise<Vehicle[]> => {
   const vehicles = await Query.Select<Vehicle>().from(Tables.INVENTORY).execute();
@@ -52,8 +54,9 @@ const spawnVehicles = () => {
 
     // Create the vehicle.
     // 3. Spawn one vehicle per spot.
+
     const v = CreateVehicleServerSetter(
-      vehicle.model,
+      GetHashKey(vehicle.model),
       'automobile',
       location.x,
       location.y,
@@ -61,13 +64,15 @@ const spawnVehicles = () => {
       heading,
     );
 
-    // EnsureEntityStateBag(v);
-    // while (NetworkGetEntityOwner(v) == -1) {
-    //   console.log('No net owner.');
-    //   await Delay(5000);
+    // while (!DoesEntityExist(v)) {
+    //   console.log(`Waiting for entity...${v}`);
     // }
+    // console.log(`Created Networkvehicle: ${v}`);
+    spawnedVehicles.push(NetworkGetNetworkIdFromEntity(v));
+  });
 
-    console.log(GetEntityCoords(v), v);
+  setImmediate(() => {
+    emitNet(UsedCarsServerEvents.VehiclesSpawned, -1, spawnedVehicles);
   });
 };
 
@@ -89,7 +94,7 @@ const endTestDrive = async () => {
 on(FiveMServerEvents.ResourceStart, async (resource: string) => {
   if (resource === GetCurrentResourceName()) {
     const root = GetResourcePath(GetCurrentResourceName());
-    console.log('Started Used Car Dealer...loading vehicles');
+    console.log('Started Used Car Dealer...loading config file.');
     config = await ConfigController.loadConfig(`${root}/config.json`);
 
     config.spawnLocation.forEach(location => spawnPointsVehicleMap.set(location, ''));
@@ -106,45 +111,25 @@ on(FiveMServerEvents.ResourceStart, async (resource: string) => {
     // Save the current vehicles in map to retrieve them later.
     vehicles.forEach(vehicle => {
       if (!vehiclesForSale.has(vehicle.uuid)) {
-        console.log(`Storting Vehicle: ${vehicle.model}`);
+        console.log(`Storing Vehicle: ${vehicle.model}`);
         vehiclesForSale.set(vehicle.uuid, vehicle);
       }
     });
 
-    spawnVehicles();
+    const clientConfig: Client = {
+      blips: config.blips,
+      language: config.language,
+      markers: config.markers,
+    };
 
-    RegisterCommand(
-      'car',
-      async () => {
-        //Citizen.invokeNative('CREATE_AUTOMOBILE', 'banshee', -1674.5, -875.8, 9.0, 90.0);
-
-        const vehicle = CreateVehicleServerSetter(
-          'banshee',
-          'automobile',
-          -1674.5,
-          -875.8,
-          9.0,
-          90.0,
-        );
-
-        while (!DoesEntityExist(vehicle)) {
-          await Delay(1);
-        }
-        // EnsureEntityStateBag(vehicle);
-        // while (NetworkGetEntityOwner(vehicle) === -1) {
-        //   console.log('No owner');
-        //   await Delay(5000);
-        // }
-      },
-      false,
-    );
-
-    onNet(FiveMUsedCarsClientEvents.LoadVehicles, source => {
-      if (!vehiclesSpawned) {
-        setImmediate(() => {
-          emitNet(FiveMUsedCarsServerEvents.VehiclesLoaded, source, vehicles);
-        });
-      }
+    onNet(UsedCarsClientEvents.GetConfig, () => {
+      console.log(source);
+      const playerId = source;
+      setImmediate(() => {
+        emitNet(UsedCarsServerEvents.ClientConfigLoaded, playerId, clientConfig);
+      });
     });
+
+    spawnVehicles();
   }
 });

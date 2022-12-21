@@ -1,0 +1,9 @@
+{
+  "ui.buttons.buy": "Buy [Press %s]",
+  "ui.buttons.sell": "Sell [Press %s]",
+  "ui.buttons.drive": "Test Drive [Press %s]",
+  "ui.labels.power": "HP: %d",
+  "ui.labels.miles": "Miles: %d",
+  "ui.labels.color": "Color: %s",
+  "ui.labels.price": "Price: %d $"
+}
