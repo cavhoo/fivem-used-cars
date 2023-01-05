@@ -4,6 +4,7 @@ import {
   FiveMServerEvents,
   UsedCarsClientEvents,
   UsedCarsServerEvents,
+  Vec3,
 } from '../common';
 import { ConfigController } from './config/configController';
 import { IShowroomLocation, IUsedCarsConfig } from './config/configValidator';
@@ -14,7 +15,7 @@ import { Vehicle } from './models/vehicle';
 /** The vehicles that are for sale */
 const vehiclesForSale = new Map<string, Vehicle>();
 const spawnPointsVehicleMap = new Map<IShowroomLocation, string>();
-const spawnedVehicles = [];
+const spawnedVehicles: string[] = [];
 let config: IUsedCarsConfig;
 
 const loadVehiclesForSale = async (): Promise<Vehicle[]> => {
@@ -54,9 +55,8 @@ const spawnVehicles = () => {
 
     // Create the vehicle.
     // 3. Spawn one vehicle per spot.
-
     const v = CreateVehicleServerSetter(
-      GetHashKey(vehicle.model),
+      vehicle.model,
       'automobile',
       location.x,
       location.y,
@@ -64,11 +64,11 @@ const spawnVehicles = () => {
       heading,
     );
 
-    // while (!DoesEntityExist(v)) {
-    //   console.log(`Waiting for entity...${v}`);
-    // }
-    // console.log(`Created Networkvehicle: ${v}`);
-    spawnedVehicles.push(NetworkGetNetworkIdFromEntity(v));
+    SetVehicleNumberPlateText(v, vehicle.plate);
+    SetVehicleDoorsLocked(v, 1);
+
+    spawnPointsVehicleMap.set(spawnLocation, vehicle.uuid);
+    spawnedVehicles.push(vehicle.uuid);
   });
 
   setImmediate(() => {
@@ -93,11 +93,19 @@ const endTestDrive = async () => {
 
 on(FiveMServerEvents.ResourceStart, async (resource: string) => {
   if (resource === GetCurrentResourceName()) {
+    console.log('Started FiveMUsedCarDealer');
     const root = GetResourcePath(GetCurrentResourceName());
-    console.log('Started Used Car Dealer...loading config file.');
-    config = await ConfigController.loadConfig(`${root}/config.json`);
+    config = await ConfigController.loadConfig(`${root}/dist/config.json`);
 
-    config.spawnLocation.forEach(location => spawnPointsVehicleMap.set(location, ''));
+    config.spawnLocation.forEach(location =>
+      spawnPointsVehicleMap.set(
+        {
+          heading: location.heading,
+          location: new Vec3(location.location.x, location.location.y, location.location.z),
+        },
+        '',
+      ),
+    );
 
     // Establish connection to database
     await Database.connect(config.database);
@@ -107,24 +115,35 @@ on(FiveMServerEvents.ResourceStart, async (resource: string) => {
 
     // Load all vehicles that are currently for sale.
     const vehicles = await loadVehiclesForSale();
-    console.log(vehicles.length);
     // Save the current vehicles in map to retrieve them later.
     vehicles.forEach(vehicle => {
       if (!vehiclesForSale.has(vehicle.uuid)) {
-        console.log(`Storing Vehicle: ${vehicle.model}`);
         vehiclesForSale.set(vehicle.uuid, vehicle);
       }
     });
-
     const clientConfig: Client = {
       blips: config.blips,
       language: config.language,
       markers: config.markers,
+      cars: [],
     };
 
     onNet(UsedCarsClientEvents.GetConfig, () => {
-      console.log(source);
+      console.log('Requesting Client config');
       const playerId = source;
+
+      clientConfig.cars = spawnedVehicles.map(vehicle => {
+        const vehicleData = vehiclesForSale.get(vehicle);
+
+        return {
+          price: vehicleData.price,
+          name: vehicleData.make,
+          position: [...spawnPointsVehicleMap.entries()]
+            .find(([_, carUUID]) => carUUID === vehicleData.uuid)[0]
+            .location.toArray(),
+        };
+      });
+
       setImmediate(() => {
         emitNet(UsedCarsServerEvents.ClientConfigLoaded, playerId, clientConfig);
       });

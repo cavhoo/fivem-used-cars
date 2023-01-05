@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 const path = require('path');
 const RemovePlugin = require('remove-files-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const buildPath = path.resolve(__dirname, 'dist');
 
@@ -24,6 +25,9 @@ const server = {
       watch: {
         include: [path.resolve(buildPath, 'server')],
       },
+    }),
+    new CopyPlugin({
+      patterns: [{ from: './src/static', to: buildPath }],
     }),
   ],
   optimization: {

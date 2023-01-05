@@ -1,0 +1,39 @@
+{
+  "database": {
+    "user": "comrp",
+    "password": "comrp",
+    "database": "Comrp",
+    "host": "localhost"
+  },
+  "language": "de",
+  "blips": [
+    {
+      "type": 824,
+      "display": 4,
+      "label": "ui.map.label",
+      "location": [-45.98, -1681.61, 29.0],
+      "color": 24,
+      "scale": 1
+    }
+  ],
+  "markers": [
+    {
+      "type": 1,
+      "position": [-28.32, -1679.23, 28.47],
+      "direction": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [2, 2, 1],
+      "color": [255, 0, 255, 255],
+      "bobbing": false,
+      "facesPlayer": false,
+      "rotates": false
+    }
+  ],
+  "spawnLocation": [
+    { "heading": 0, "location": { "x": -42.24, "y": -1690.515, "z": 29.3 } },
+    { "heading": 0, "location": { "x": -46.7, "y": -1692.44, "z": 29.43 } },
+    { "heading": 0, "location": { "x": -50.91, "y": -1693.97, "z": 29.49 } },
+    { "heading": 0, "location": { "x": -54.39, "y": -1693.65, "z": 29.49 } },
+    { "heading": 0, "location": { "x": -57.91, "y": -1690.01, "z": 29.49 } }
+  ]
+}

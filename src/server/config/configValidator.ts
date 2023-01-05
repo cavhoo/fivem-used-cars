@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { Vec3, Blip, Language, Marker } from '../../common';
+import { ValidatorBlip, ValidatorMarker } from './fragments/config';
 import { Database } from './fragments/database';
 
 export interface IUsedCarsTable {
@@ -38,19 +39,8 @@ export interface IUsedCarsConfig {
 export abstract class ConfigValidator {
   public static joi = Joi.object().keys({
     database: Database.joi,
-    blips: Joi.array()
-      .optional()
-      .items(
-        Joi.object().keys({
-          type: Joi.number(),
-          label: Joi.string(),
-          location: Joi.array().items(Joi.number()),
-          display: Joi.number(),
-          color: Joi.number(),
-          scale: Joi.number(),
-        }),
-      ),
-    markers: Joi.array().items(Joi.object().unknown(true)),
+    blips: Joi.array().optional().items(ValidatorBlip.joi),
+    markers: Joi.array().optional().items(ValidatorMarker.joi),
     language: Joi.alternatives(['en', 'de']),
     spawnLocation: Joi.array()
       .optional()

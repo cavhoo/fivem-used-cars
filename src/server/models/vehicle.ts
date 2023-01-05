@@ -10,7 +10,7 @@ export type Vehicle = {
   /** The player selling the car. */
   seller: string;
   /** License Plate. */
-  licensePlate: string;
+  plate: string;
   /** Vehicle selling id. */
   uuid: string;
 };

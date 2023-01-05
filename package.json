@@ -22,6 +22,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.28.0",
     "prettier": "^2.8.0",
     "remove-files-webpack-plugin": "^1.4.3",
